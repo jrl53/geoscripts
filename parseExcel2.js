@@ -34,54 +34,60 @@ fs.readdirSync(folder).forEach(file => {
 
 console.log("Total of " + files.length + "files to process...");
 
-files.forEach(function(item, index){
+async function processFiles(){
     
-    console.log("Starting with " + item);
-    const ws = xlsx.parse(folder+item);
+    for(const item of files){
 
-    var query = "";
+        console.log("Starting with " + item);
+        var ws = xlsx.parse(folder+item);
 
-    if (ws.length < 1){
-        console.log("Error loading excel file");
-        return;
-    } 
+        var query = "";
 
-    console.log("sheet length = " + ws[0].data.length);
+        if (ws.length < 1){
+            console.log("Error loading excel file");
+            return;
+        } 
+
+        console.log("sheet length = " + ws[0].data.length);
 
 
-    for(var i=6; i<ws[0].data.length; i++){
-        var dl = ws[0].data[i];
+        for(var i=6; i<ws[0].data.length; i++){
+            var dl = ws[0].data[i];
 
-        if(dl.length == 0) {
-            break;
+            if(dl.length == 0) {
+                break;
+            }
+
+            var toPush = {
+                vehicle: dl[0],
+                driver: dl[1],
+                thegroup: dl[2],
+                thedate: dl[3],
+                event: dl[4],
+                latitude: dl[5],
+                longitude: dl[6],
+                address: dl[7]
+            }
+
+            data.push(toPush);
+        //        console.log(line);
         }
 
-        var toPush = {
-            vehicle: dl[0],
-            driver: dl[1],
-            thegroup: dl[2],
-            thedate: dl[3],
-            event: dl[4],
-            latitude: dl[5],
-            longitude: dl[6],
-            address: dl[7]
-        }
+        const insert = pgp.helpers.insert(data, cs);
 
-        data.push(toPush);
-    //        console.log(line);
+        await db.none(insert);
+        
+        console.log("erasing stuff");
+        ws = {};
+        toPush = {};
+    
     }
+    console.log("looks like we are outside");
+}
 
-    const insert = pgp.helpers.insert(data, cs);
-
-    db.none(insert)
-        .then(() => {
-            console.log("success!");
-        })
-        .catch(error => {
-            console.log("error");
-            console.log(error);
-        });
-    
+processFiles().catch(function(err){
+    console.log("there was a big error");
+    console.log(err);
 })
 
 /*
